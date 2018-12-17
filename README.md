@@ -1,28 +1,210 @@
 # Hayfork
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/hayfork`. To experiment with that code, run `bin/console` for an interactive prompt.
+[![Gem Version](https://badge.fury.io/rb/hayfork.svg)](https://rubygems.org/gems/hayfork)
+[![Build Status](https://travis-ci.org/boblail/hayfork.svg)](https://travis-ci.org/boblail/hayfork)
 
-TODO: Delete this and the text above, and describe your gem
+Full-Text search for ActiveRecord and Postgres.
 
-## Installation
+Hayfork generates triggers to maintain a **Haystack** of all searchable fields that Postgres can index easily and efficiently.
 
-Add this line to your application's Gemfile:
+
+
+<br/>
+
+## About
+
+##### How Hayfork works
+
+You define the tables and fields to be watched. Hayfork defines triggers that watch those tables for INSERTs, UPDATEs, and DELETEs. In response, the triggers insert, update, or delete corresponding rows in the haystack: one row per searchable field.
+
+They Haystack has a column named `search_vector` that can be indexed, optimizing searches.
+
+Note that a query against the Haystack returns a list of **hits** — one result may have more than one hit (as when a search string is found in both the text and title of a book).
+
+
+##### Why Hayfork?
+
+Hayfork is designed to:
+
+ - optimize searches by:
+    - executing one query to search any number of fields or tables
+    - writing `search_vector` when hits are inserted so that the column may be indexed
+ - rebuild the haystack at the database level so that it works with bulk-inserted records
+ - support extension so, by adding metadata to a hit, you can:
+    - provide additional context about a result in the UI
+    - search only within a particular field (e.g. enable users to search `author:Potok` to find books whether the author's name includes "Potok")
+    - scope searches by a user or tenant or feature
+
+
+<br/>
+
+## Setup
+
+Generate a haystack table and model for your application.
+
+    $ rails generate hayfork:haystack
+
+This will generate several files:
+
+ - `app/models/haystack.rb` and `db/migrate/000_create_haystack.rb` define the Haystack
+ - `app/models/query.rb` (and several models in the `Query` namespace) are responsible for parsing a query string and constructing the SQL to execute it.
+ - `lib/haystack_triggers.rb` is where you will define the tables and fields to be added to the Haystack.
+
+
+<br/>
+
+## lib/haystack_triggers.rb
+
+#### Basic Example
+
+This basic example allows you to search all your employees and projects with one search box:
 
 ```ruby
-gem 'hayfork'
+Hayfork.maintain(Haystack) do
+  foreach(Employee) do
+    insert(:full_name)
+  end
+  foreach(Project) do
+    insert(:title)
+  end
+end
 ```
 
-And then execute:
+<br/>
 
-    $ bundle
+#### Metadata (Example: multiple fields)
 
-Or install it yourself as:
+To allow finding employees by multiple traits (e.g by name, job title, or short biography), you can define multiple `insert` statements per employee:
 
-    $ gem install hayfork
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Employee) do
+    insert(:full_name)
+    insert(:position)
+    insert(:short_bio)
+  end
+end
+```
 
-## Usage
+:point_right: The `UPDATE` logic assumes that each row in the haystack can be uniquely identified by static attributes (e.g. `search_result_id`, `search_result_type`). If we update just `employees.position`, we need to give Hayfork a way of differentiating the record for `position` from the records for `full_name` and `short_bio`. We'll do that by adding a new column (`field`) to the haystack table and giving it a different static value for each row:
 
-TODO: Write usage instructions here
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Employee) do
+    insert(:full_name).merge(field: "full_name")
+    insert(:position).merge(field: "position")
+    insert(:short_bio).merge(field: "short_bio")
+  end
+end
+```
+<br/>
+
+#### Metadata (Example: scoped searches)
+
+Additional columns on `haystack` can also be useful for scoping searches. Suppose we're maintaining a database of employees for multiple companies. We would want to scope searches by company. If we've added `company_id` to our haystack, we can populate it like this:
+
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Employee) do
+    set :company_id, row[:company_id]
+
+    insert(:full_name).merge(field: "full_name")
+    insert(:position).merge(field: "position")
+    insert(:short_bio).merge(field: "short_bio")
+  end
+end
+```
+
+In this line,
+
+```ruby
+    set :company_id, row[:company_id]
+```
+
+1. `row` is an `Arel::Table` that represents the row passed to the trigger; `row` is present in every block.
+2. `set` works similarly to `merge`: `set` assigns a value that will be inserted in the haystack for all following `insert` statements while `.merge` applies only to the `insert` statement that it is chained onto.
+<br/>
+
+#### belongs_to
+
+If a book `belongs_to :author`, you can find the book by _either_ its title or its author's name like this:
+
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Book) do
+    insert(:title)
+    insert(author: :name)
+  end
+end
+```
+
+When a book is inserted, this will add an entry to the haystack for the book's title and another entry for its author's name. If `book.author_id` is changed, it'll replace the appropriate entry in the haystack; but what if `authors.name` is modified? We also need to watch the `authors` table for changes to modify the haystack:
+
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Book) do
+    insert(:title)
+    insert(author: :name)
+  end
+  foreach(Author) do
+    joins :books
+    set :search_result_type, "Book"
+    set :search_result_id, Book.arel_table[:id]
+
+    insert(:name)
+  end
+end
+```
+
+In the examples seen before, we haven't set `search_result_type` and `search_result_id`. If these values aren't defined, Hayfork assumes that the model passed to `foreach` — the table being watched — is the search result; but for an associated record, we need to explicitly declare the result. In this case, an entry is added to the haystack for every book that belongs to an author.
+
+<br/>
+
+#### has_many
+
+`has_many` and `has_many :through` associations work much the same way. If an article `has_many :comments`, you can find an article by any of its comments like this:
+
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Article) do
+    insert(comments: :text)
+  end
+  foreach(Comment) do
+    joins :article
+    set :search_result_type, "Article"
+    set :search_result_id, Article.arel_table[:id]
+
+    insert(:text)
+  end
+end
+```
+
+:point_right: The `UPDATE` logic assumes that each row in the haystack can be uniquely identified by static attributes (e.g. `search_result_id`, `search_result_type`). If we update the text of _one_ of an article's comments, we need to give Hayfork a way of differentiating the entries that may be replaced from the ones that shouldn't change. We'll do that by adding a new column (`ref_id`) to the haystack table and giving it a value that identifies the comment that corresponds to the entry:
+
+```ruby
+Hayfork.maintain(Haystack) do
+  foreach(Article) do
+    insert(comments: :text)
+  end
+  foreach(Comment.joins(:article)) do
+    set :search_result_type, "Article"
+    set :search_result_id, Article.arel_table[:id]
+
+    insert(:text).merge(ref_id: row[:id])
+  end
+end
+```
+<br/>
+
+#### Rebuild Triggers
+
+After making changes to `lib/haystack_triggers.rb` or to the default scopes of any of the models being used by the Triggers File, you'll need to replace the triggers in your database and rebuild the Haystack. Hayfork generates a migration to do that:
+
+    $ rails generate hayfork:rebuild
+
+
+
+<br/>
 
 ## Development
 
@@ -30,9 +212,13 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
+<br/>
+
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/hayfork.
+Bug reports and pull requests are welcome on GitHub at https://github.com/cph/hayfork.
+
+<br/>
 
 ## License
 

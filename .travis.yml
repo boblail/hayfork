@@ -1,5 +1,16 @@
-sudo: false
 language: ruby
+
 rvm:
-  - 2.3.1
+  - 2.3.8
+  - 2.5.3
+  - 2.6.0
+
+sudo: required
+dist: xenial
+addons:
+  postgresql: 10
+
+services:
+  - postgresql
+
 before_install: gem install bundler -v 1.16.1
