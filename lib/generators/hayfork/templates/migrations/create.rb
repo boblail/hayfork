@@ -24,7 +24,7 @@ class Create<%= table_name.camelize %> < ActiveRecord::Migration<%= migration_ve
       t.string :<%= Hayfork::SEARCH_RESULT_TYPE %>, null: false
       t.integer :<%= Hayfork::SEARCH_RESULT_ID %>, null: false
       t.tsvector :<%= Hayfork::SEARCH_VECTOR %>
-      t.text :<%= Hayfork::TEXT %>
+      t.text :<%= Hayfork::TEXT %>, null: false
 
       # Add additional columns to <%= table_name %> here.
       #

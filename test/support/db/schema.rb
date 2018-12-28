@@ -3,7 +3,7 @@ ActiveRecord::Schema.define(version: 1) do
   create_table "haystack", force: true do |t|
     t.string   "search_result_type", null: false
     t.integer  "search_result_id", null: false
-    t.text     "text"
+    t.text     "text", null: false
     t.tsvector "search_vector"
     t.string   "another_field"
   end
