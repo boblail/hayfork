@@ -46,7 +46,11 @@ module Hayfork
     end
 
     def merge(attrs = {})
-      attributes.merge! attrs.stringify_keys.except(Hayfork::SEARCH_VECTOR, Hayfork::TEXT)
+      attributes.merge! attrs.stringify_keys.except(
+        Hayfork::SEARCH_VECTOR,
+        Hayfork::TEXT,
+        Hayfork::SOURCE_TYPE,
+        Hayfork::SOURCE_ID)
       self
     end
 
@@ -99,6 +103,9 @@ module Hayfork
           when Hayfork::SEARCH_RESULT_TYPE then model.name
           when Hayfork::SEARCH_RESULT_ID then model.arel_table["id"]
           when Hayfork::SEARCH_VECTOR, Hayfork::TEXT then self.value
+          when Hayfork::SOURCE_TYPE then self.value.relation.send(:type_caster).send(:types).name
+          when Hayfork::SOURCE_ID then self.value.relation["id"]
+          when Hayfork::FIELD then self.value.name
           end
         end
 

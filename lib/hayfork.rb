@@ -14,6 +14,9 @@ module Hayfork
   SEARCH_VECTOR = "search_vector".freeze
   SEARCH_RESULT_TYPE = "search_result_type".freeze
   SEARCH_RESULT_ID = "search_result_id".freeze
+  SOURCE_TYPE = "source_type".freeze
+  SOURCE_ID = "source_id".freeze
+  FIELD = "field".freeze
 
   @default_weight = "C".freeze
   @default_dictionary = "hayfork".freeze

@@ -23,6 +23,11 @@ class Create<%= table_name.camelize %> < ActiveRecord::Migration<%= migration_ve
     create_table :<%= table_name %>, id: false do |t|
       t.string :<%= Hayfork::SEARCH_RESULT_TYPE %>, null: false
       t.integer :<%= Hayfork::SEARCH_RESULT_ID %>, null: false
+
+      t.string :<%= Hayfork::SOURCE_TYPE %>, null: false
+      t.integer :<%= Hayfork::SOURCE_ID %>, null: false
+      t.string :<%= Hayfork::FIELD %>, null: false
+
       t.tsvector :<%= Hayfork::SEARCH_VECTOR %>
       t.text :<%= Hayfork::TEXT %>, null: false
 
@@ -32,14 +37,6 @@ class Create<%= table_name.camelize %> < ActiveRecord::Migration<%= migration_ve
       # own creation:
       #
       #    t.belongs_to :user, null: false
-      #
-      # or to allow users to constrain a search by a particular field:
-      #
-      #    t.string :field, null: false
-      #
-      # or to allow finding a result by the of content of its subrecords:
-      #
-      #    t.integer :ref_id
       #
 
       # If you add columns that will always be used in searches (like `user_id`),

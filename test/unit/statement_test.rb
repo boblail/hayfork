@@ -26,6 +26,18 @@ class StatementTest < Minitest::Test
       should "bind 'text' to the field passed to the statement" do
         assert_equal Book.arel_table["title"], bound_value_of(statement, Hayfork::TEXT)
       end
+
+      should "bind 'field' to the name of the field passed to the statement" do
+        assert_equal "title", bound_value_of(statement, Hayfork::FIELD)
+      end
+
+      should "bind 'source_type' to the name of the model passed to the statement" do
+        assert_equal "Book", bound_value_of(statement, Hayfork::SOURCE_TYPE)
+      end
+
+      should "bind 'source_id' to the id of the model passed to the statement" do
+        assert_equal Book.arel_table["id"], bound_value_of(statement, Hayfork::SOURCE_ID)
+      end
     end
 
 
@@ -38,13 +50,27 @@ class StatementTest < Minitest::Test
         assert_equal 1, bound_value_of(statement.merge(Hayfork::SEARCH_RESULT_ID => 1), Hayfork::SEARCH_RESULT_ID)
       end
 
+      should "allow overriding the binding of 'field'" do
+        assert_equal "grassy", bound_value_of(statement.merge(Hayfork::FIELD => "grassy"), Hayfork::FIELD)
+      end
+
+
       should "prohibit overriding the binding of 'search_vector'" do
-        assert_equal Book.arel_table["title"], bound_value_of(statement.merge(Hayfork::SEARCH_VECTOR => "NOPE"), Hayfork::SEARCH_VECTOR)
+        refute_equal "NOPE", bound_value_of(statement.merge(Hayfork::SEARCH_VECTOR => "NOPE"), Hayfork::SEARCH_VECTOR)
       end
 
       should "prohibit overriding the binding of 'text'" do
-        assert_equal Book.arel_table["title"], bound_value_of(statement.merge(Hayfork::TEXT => "NOPE"), Hayfork::TEXT)
+        refute_equal "NOPE", bound_value_of(statement.merge(Hayfork::TEXT => "NOPE"), Hayfork::TEXT)
       end
+
+      should "prohibit overriding the binding of 'source_type'" do
+        refute_equal "NOPE", bound_value_of(statement.merge(Hayfork::SOURCE_TYPE => "NOPE"), Hayfork::SOURCE_TYPE)
+      end
+
+      should "prohibit overriding the binding of 'source_id'" do
+        refute_equal 0, bound_value_of(statement.merge(Hayfork::SOURCE_ID => 0), Hayfork::SOURCE_ID)
+      end
+
 
       should "include bindings for arbitrary attributes that exist on Haystack" do
         assert_includes statement.merge(another_field: "example").bindings.map(&:key), "another_field"

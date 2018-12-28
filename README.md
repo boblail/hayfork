@@ -72,7 +72,7 @@ end
 
 <br/>
 
-#### Metadata (Example: multiple fields)
+#### Multiple Fields
 
 To allow finding employees by multiple traits (e.g by name, job title, or short biography), you can define multiple `insert` statements per employee:
 
@@ -86,20 +86,9 @@ Hayfork.maintain(Haystack) do
 end
 ```
 
-:point_right: The `UPDATE` logic assumes that each row in the haystack can be uniquely identified by static attributes (e.g. `search_result_id`, `search_result_type`). If we update just `employees.position`, we need to give Hayfork a way of differentiating the record for `position` from the records for `full_name` and `short_bio`. We'll do that by adding a new column (`field`) to the haystack table and giving it a different static value for each row:
-
-```ruby
-Hayfork.maintain(Haystack) do
-  foreach(Employee) do
-    insert(:full_name).merge(field: "full_name")
-    insert(:position).merge(field: "position")
-    insert(:short_bio).merge(field: "short_bio")
-  end
-end
-```
 <br/>
 
-#### Metadata (Example: scoped searches)
+#### Scoping Searches
 
 Additional columns on `haystack` can also be useful for scoping searches. Suppose we're maintaining a database of employees for multiple companies. We would want to scope searches by company. If we've added `company_id` to our haystack, we can populate it like this:
 
@@ -108,9 +97,9 @@ Hayfork.maintain(Haystack) do
   foreach(Employee) do
     set :company_id, row[:company_id]
 
-    insert(:full_name).merge(field: "full_name")
-    insert(:position).merge(field: "position")
-    insert(:short_bio).merge(field: "short_bio")
+    insert(:full_name)
+    insert(:position)
+    insert(:short_bio)
   end
 end
 ```
@@ -121,8 +110,9 @@ In this line,
     set :company_id, row[:company_id]
 ```
 
-1. `row` is an `Arel::Table` that represents the row passed to the trigger; `row` is present in every block.
-2. `set` works similarly to `merge`: `set` assigns a value that will be inserted in the haystack for all following `insert` statements while `.merge` applies only to the `insert` statement that it is chained onto.
+1. `row` is an instance of `Arel::Table` that represents the row passed to the trigger; `row` is present in every `foreach` block.
+2. `set` assigns a value that will be inserted in the haystack for all following `insert` statements.
+
 <br/>
 
 #### belongs_to
@@ -179,21 +169,6 @@ Hayfork.maintain(Haystack) do
 end
 ```
 
-:point_right: The `UPDATE` logic assumes that each row in the haystack can be uniquely identified by static attributes (e.g. `search_result_id`, `search_result_type`). If we update the text of _one_ of an article's comments, we need to give Hayfork a way of differentiating the entries that may be replaced from the ones that shouldn't change. We'll do that by adding a new column (`ref_id`) to the haystack table and giving it a value that identifies the comment that corresponds to the entry:
-
-```ruby
-Hayfork.maintain(Haystack) do
-  foreach(Article) do
-    insert(comments: :text)
-  end
-  foreach(Comment.joins(:article)) do
-    set :search_result_type, "Article"
-    set :search_result_id, Article.arel_table[:id]
-
-    insert(:text).merge(ref_id: row[:id])
-  end
-end
-```
 <br/>
 
 #### Rebuild Triggers
