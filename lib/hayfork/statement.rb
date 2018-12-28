@@ -92,7 +92,6 @@ module Hayfork
 
     def bindings
       @bindings ||= (haystack.columns.each_with_object([]) do |column, bindings|
-        next if IGNORED_COLUMNS.member?(column.name)
         next if column.name == Hayfork::SEARCH_VECTOR && unsearchable?
 
         value = attributes.fetch column.name do
@@ -121,12 +120,6 @@ module Hayfork
     def reflection_for(association)
       Hayfork.reflection_for(model, association)
     end
-
-    IGNORED_COLUMNS = %w{
-      id
-      created_at
-      updated_at
-    }.freeze
 
   end
 end

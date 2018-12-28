@@ -20,7 +20,7 @@ class Create<%= table_name.camelize %> < ActiveRecord::Migration<%= migration_ve
       ALTER TEXT SEARCH CONFIGURATION public.hayfork ALTER MAPPING FOR asciiword, asciihword, hword_asciipart, hword, hword_part, word WITH unaccent, english_stem;
     SQL
 
-    create_table :<%= table_name %> do |t|
+    create_table :<%= table_name %>, id: false do |t|
       t.string :<%= Hayfork::SEARCH_RESULT_TYPE %>, null: false
       t.integer :<%= Hayfork::SEARCH_RESULT_ID %>, null: false
       t.tsvector :<%= Hayfork::SEARCH_VECTOR %>
@@ -41,8 +41,6 @@ class Create<%= table_name.camelize %> < ActiveRecord::Migration<%= migration_ve
       #
       #    t.integer :ref_id
       #
-
-      t.timestamps null: false, default: -> { "NOW()" }
 
       # If you add columns that will always be used in searches (like `user_id`),
       # consider including them in this index. For example:

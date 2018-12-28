@@ -6,8 +6,6 @@ ActiveRecord::Schema.define(version: 1) do
     t.text     "text"
     t.tsvector "search_vector"
     t.string   "another_field"
-    t.datetime "created_at", null: false, default: -> { "NOW()" }
-    t.datetime "updated_at", null: false, default: -> { "NOW()" }
   end
 
   create_table "books", force: true do |t|
