@@ -16,6 +16,7 @@ class RebuildGeneratorTest < Rails::Generators::TestCase
 
     should "generate a migration to rebuild the Haystack" do
       assert_migration "db/migrate/rebuild_haystack.rb" do |file|
+        assert_match /^require \"haystack_triggers\"/, file
         assert_match /^class RebuildHaystack < ActiveRecord::Migration/, file
         assert_match /execute Haystack.triggers/, file
       end
@@ -46,6 +47,7 @@ class RebuildGeneratorTest < Rails::Generators::TestCase
 
     should "generate a migration to rebuild the Haystack" do
       assert_migration "db/migrate/rebuild_monsters.rb" do |file|
+        assert_match /^require \"monster_triggers\"/, file
         assert_match /^class RebuildMonsters < ActiveRecord::Migration/, file
         assert_match /execute Monster.triggers/, file
       end
