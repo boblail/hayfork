@@ -7,4 +7,6 @@ gemspec
 
 gem "rails", ">= 5.2"
 
+gem "bundler", ">= 2.0.2"
+
 gem "pry"
