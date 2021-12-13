@@ -15,12 +15,15 @@ require "support/models/author"
 require "support/models/book"
 require "support/models/haystack"
 
-system "psql -c 'create database hayfork_test'"
+connection_url = "'postgresql://#{ENV["POSTGRES_USER"]}:#{ENV["POSTGRES_PASSWORD"]}@localhost:5432'" if ENV["POSTGRES_PASSWORD"]
+system "psql #{connection_url} -c 'create database hayfork_test'"
 
 ActiveRecord::Base.establish_connection(
   adapter: "postgresql",
   host: "localhost",
   database: "hayfork_test",
+  username: ENV["POSTGRES_USER"],
+  password: ENV["POSTGRES_PASSWORD"],
   verbosity: "quiet")
 
 load File.join(File.dirname(__FILE__), "support", "db", "schema.rb")
