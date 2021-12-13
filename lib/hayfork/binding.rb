@@ -14,7 +14,7 @@ module Hayfork
     def quoted_value
       case raw_value
       when Arel::Attributes::Attribute
-        value_column = raw_value.relation.send(:type_caster).send(:types).columns_hash[raw_value.name.to_s]
+        value_column = raw_value.relation.send(:type_caster).send(types_method).columns_hash[raw_value.name.to_s]
         fail Hayfork::ColumnNotFoundError, "'#{raw_value.name}' is not a column on '#{raw_value.relation.name}'" unless value_column
 
         value = "#{raw_value.relation.name}.#{raw_value.name}"
@@ -56,6 +56,18 @@ module Hayfork
         "#{statement.haystack.connection.quote(raw_value)}::#{type}"
 
       end
+    end
+
+  private
+
+    def types_method
+      before_rails61? ? :types : :klass
+    end
+
+    def before_rails61?
+      return true if ActiveRecord::VERSION::MAJOR < 6
+
+      ActiveRecord::VERSION::MINOR < 1
     end
 
     SPECIAL_CASTS = {

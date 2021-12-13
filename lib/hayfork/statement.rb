@@ -103,7 +103,7 @@ module Hayfork
           when Hayfork::SEARCH_RESULT_TYPE then model.name
           when Hayfork::SEARCH_RESULT_ID then model.arel_table["id"]
           when Hayfork::SEARCH_VECTOR, Hayfork::TEXT then self.value
-          when Hayfork::SOURCE_TYPE then self.value.relation.send(:type_caster).send(:types).name
+          when Hayfork::SOURCE_TYPE then self.value.relation.send(:type_caster).send(types_method).name
           when Hayfork::SOURCE_ID then self.value.relation["id"]
           when Hayfork::FIELD then self.value.name
           end
@@ -126,6 +126,16 @@ module Hayfork
 
     def reflection_for(association)
       Hayfork.reflection_for(model, association)
+    end
+
+    def types_method
+      before_rails61? ? :types : :klass
+    end
+
+    def before_rails61?
+      return true if ActiveRecord::VERSION::MAJOR < 6
+
+      ActiveRecord::VERSION::MINOR < 1
     end
 
   end

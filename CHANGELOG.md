@@ -1,3 +1,7 @@
+## v1.2.0 (2021 Nov 8)
+
+* Support for Rails 6.1
+
 ## v1.1.0 (2019 Sept 24)
 
 * Support for Rails 6
